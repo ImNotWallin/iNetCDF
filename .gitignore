@@ -216,3 +216,23 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Briefcase / iOS build artifacts
+build/
+dist/
+*.ipa
+*.dSYM
+*.xcarchive
+
+# Xcode
+*.xcodeproj/xcuserdata
+DerivedData/
+
+# Compiled C libs / wheels
+*.a
+*.o
+*.whl
+src/deps/
+
+# Mac junk
+.DS_Store
