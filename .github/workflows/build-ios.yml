@@ -84,6 +84,21 @@ jobs:
           make install
 
       # ── libnetcdf ─────────────────────────────────────────────────────────
+      - name: Create iOS CMake toolchain file
+        run: |
+          cat > $GITHUB_WORKSPACE/ios-toolchain.cmake << EOF
+          set(CMAKE_SYSTEM_NAME iOS)
+          set(CMAKE_OSX_ARCHITECTURES arm64)
+          set(CMAKE_OSX_SYSROOT $IOS_SDK)
+          set(CMAKE_OSX_DEPLOYMENT_TARGET ${{ env.IOS_MIN_VERSION }})
+          set(CMAKE_C_COMPILER $IOS_CC)
+          set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
+          set(CMAKE_FIND_ROOT_PATH $DEPS_DIR)
+          set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+          set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+          set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+          EOF
+
       - name: Build libnetcdf for iOS (arm64)
         run: |
           curl -LO https://github.com/Unidata/netcdf-c/archive/refs/tags/v${{ env.NETCDF_VERSION }}.tar.gz
@@ -91,13 +106,9 @@ jobs:
           cd netcdf-c-${{ env.NETCDF_VERSION }}
           mkdir build && cd build
           cmake .. \
-            -DCMAKE_SYSTEM_NAME=iOS \
-            -DCMAKE_OSX_ARCHITECTURES=arm64 \
-            -DCMAKE_OSX_SYSROOT=$IOS_SDK \
-            -DCMAKE_OSX_DEPLOYMENT_TARGET=${{ env.IOS_MIN_VERSION }} \
+            -DCMAKE_TOOLCHAIN_FILE=$GITHUB_WORKSPACE/ios-toolchain.cmake \
             -DCMAKE_INSTALL_PREFIX=$DEPS_DIR \
-            -DCMAKE_C_COMPILER="$IOS_CC" \
-            -DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY \
+            -DCMAKE_PREFIX_PATH=$DEPS_DIR \
             -DBUILD_SHARED_LIBS=OFF \
             -DENABLE_TESTS=OFF \
             -DENABLE_EXAMPLES=OFF \
