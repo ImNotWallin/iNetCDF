@@ -117,6 +117,7 @@ jobs:
             -DENABLE_NETCDF_4=ON \
             -DENABLE_PARALLEL4=OFF \
             -DENABLE_PNETCDF=OFF \
+            -DHDF5_PARALLEL=OFF \
             -DHDF5_C_LIBRARY_hdf5=$DEPS_DIR/lib/libhdf5.a \
             -DHDF5_C_LIBRARY_hdf5_hl=$DEPS_DIR/lib/libhdf5_hl.a \
             -DHDF5_INCLUDE_DIR=$DEPS_DIR/include \
