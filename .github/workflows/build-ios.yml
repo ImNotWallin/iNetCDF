@@ -1,0 +1,157 @@
+name: Build iNetCDF iOS
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:  # allows manual trigger from GitHub UI
+
+env:
+  PYTHON_VERSION: "3.11"
+  IOS_MIN_VERSION: "15.0"
+  ZLIB_VERSION: "1.3.1"
+  HDF5_VERSION: "1.14.3"
+  NETCDF_VERSION: "4.9.2"
+  NETCDF4_PY_VERSION: "1.6.5"
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install build tools
+        run: |
+          pip install briefcase crossenv
+          brew install cmake
+
+      # ── iOS SDK environment ──────────────────────────────────────────────
+      - name: Set up iOS SDK environment
+        run: |
+          SDK=$(xcrun --sdk iphoneos --show-sdk-path)
+          CC=$(xcrun --sdk iphoneos --find clang)
+          DEPS=$GITHUB_WORKSPACE/ios-deps
+          mkdir -p $DEPS/{lib,include,bin}
+          echo "IOS_SDK=$SDK"   >> $GITHUB_ENV
+          echo "IOS_CC=$CC"     >> $GITHUB_ENV
+          echo "DEPS_DIR=$DEPS" >> $GITHUB_ENV
+
+      # ── zlib ─────────────────────────────────────────────────────────────
+      - name: Build zlib for iOS (arm64)
+        run: |
+          curl -LO https://zlib.net/zlib-${{ env.ZLIB_VERSION }}.tar.gz
+          tar xzf zlib-${{ env.ZLIB_VERSION }}.tar.gz
+          cd zlib-${{ env.ZLIB_VERSION }}
+          CC="$IOS_CC" \
+          CFLAGS="-arch arm64 -isysroot $IOS_SDK -miphoneos-version-min=${{ env.IOS_MIN_VERSION }}" \
+          ./configure \
+            --prefix=$DEPS_DIR \
+            --static \
+            --archs="-arch arm64"
+          make -j$(sysctl -n hw.ncpu)
+          make install
+
+      # ── HDF5 ─────────────────────────────────────────────────────────────
+      - name: Build HDF5 for iOS (arm64)
+        run: |
+          curl -LO https://github.com/HDFGroup/hdf5/releases/download/hdf5_${{ env.HDF5_VERSION }}/hdf5-${{ env.HDF5_VERSION }}.tar.gz
+          tar xzf hdf5-${{ env.HDF5_VERSION }}.tar.gz
+          cd hdf5-${{ env.HDF5_VERSION }}
+          CC="$IOS_CC" \
+          CFLAGS="-arch arm64 -isysroot $IOS_SDK -miphoneos-version-min=${{ env.IOS_MIN_VERSION }}" \
+          CPPFLAGS="-I$DEPS_DIR/include" \
+          LDFLAGS="-L$DEPS_DIR/lib" \
+          ./configure \
+            --prefix=$DEPS_DIR \
+            --host=aarch64-apple-darwin \
+            --enable-static \
+            --disable-shared \
+            --disable-tests \
+            --disable-tools \
+            --with-zlib=$DEPS_DIR \
+            ac_cv_sizeof_long_double=8 \
+            hdf5_cv_ldouble_to_long_special=no \
+            hdf5_cv_long_to_ldouble_special=no \
+            hdf5_cv_ldouble_to_uint_accurate=yes \
+            hdf5_cv_ldouble_to_integer_works=yes
+          make -j$(sysctl -n hw.ncpu)
+          make install
+
+      # ── libnetcdf ─────────────────────────────────────────────────────────
+      - name: Build libnetcdf for iOS (arm64)
+        run: |
+          curl -LO https://github.com/Unidata/netcdf-c/archive/refs/tags/v${{ env.NETCDF_VERSION }}.tar.gz
+          tar xzf v${{ env.NETCDF_VERSION }}.tar.gz
+          cd netcdf-c-${{ env.NETCDF_VERSION }}
+          mkdir build && cd build
+          cmake .. \
+            -DCMAKE_SYSTEM_NAME=iOS \
+            -DCMAKE_OSX_ARCHITECTURES=arm64 \
+            -DCMAKE_OSX_SYSROOT=$IOS_SDK \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=${{ env.IOS_MIN_VERSION }} \
+            -DCMAKE_INSTALL_PREFIX=$DEPS_DIR \
+            -DCMAKE_PREFIX_PATH=$DEPS_DIR \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DENABLE_TESTS=OFF \
+            -DENABLE_EXAMPLES=OFF \
+            -DENABLE_DAP=OFF \
+            -DENABLE_BYTERANGE=OFF \
+            -DENABLE_NETCDF_4=ON \
+            -DHDF5_DIR=$DEPS_DIR/lib/cmake/hdf5
+          make -j$(sysctl -n hw.ncpu)
+          make install
+
+      # ── Briefcase iOS scaffold ────────────────────────────────────────────
+      - name: Create Briefcase iOS project (downloads iOS Python)
+        run: |
+          briefcase create iOS --no-input 2>&1 || true
+          # Find the iOS Python binary Briefcase downloaded
+          IOS_PY=$(find $GITHUB_WORKSPACE -name "python3.11" \
+                   -path "*/iphoneos/*" 2>/dev/null | head -1)
+          echo "IOS_PYTHON=$IOS_PY" >> $GITHUB_ENV
+          echo "Found iOS Python: $IOS_PY"
+
+      # ── netCDF4 Python wheel ───────────────────────────────────────────────
+      - name: Build netCDF4 wheel for iOS Python
+        run: |
+          python -m crossenv "$IOS_PYTHON" cross-venv
+          source cross-venv/bin/activate
+          export NETCDF4_DIR=$DEPS_DIR
+          export HDF5_DIR=$DEPS_DIR
+          export ZLIB_DIR=$DEPS_DIR
+          export CFLAGS="-arch arm64 -isysroot $IOS_SDK -miphoneos-version-min=${{ env.IOS_MIN_VERSION }}"
+          export LDFLAGS="-L$DEPS_DIR/lib -lnetcdf -lhdf5_hl -lhdf5 -lz"
+          pip install --no-binary :all: netCDF4==${{ env.NETCDF4_PY_VERSION }}
+          # Collect the wheel
+          find cross-venv -name "netCDF4*.whl" -exec cp {} $GITHUB_WORKSPACE/ \; 2>/dev/null || true
+
+      # ── Briefcase build ───────────────────────────────────────────────────
+      - name: Build iOS app (no signing)
+        run: |
+          briefcase build iOS \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+
+      # ── Package as .ipa ───────────────────────────────────────────────────
+      - name: Package .ipa
+        run: |
+          APP=$(find build -name "*.app" -not -path "*/DerivedData/*" | head -1)
+          echo "Packaging: $APP"
+          mkdir -p Payload
+          cp -r "$APP" Payload/
+          zip -r iNetCDF.ipa Payload/
+
+      # ── Upload artifact ───────────────────────────────────────────────────
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: iNetCDF-iOS
+          path: iNetCDF.ipa
+          retention-days: 7
