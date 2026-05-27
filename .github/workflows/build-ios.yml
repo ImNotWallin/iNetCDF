@@ -45,7 +45,7 @@ jobs:
       # ── zlib ─────────────────────────────────────────────────────────────
       - name: Build zlib for iOS (arm64)
         run: |
-          curl -LO https://zlib.net/zlib-${{ env.ZLIB_VERSION }}.tar.gz
+          curl -LO https://github.com/madler/zlib/releases/download/v${{ env.ZLIB_VERSION }}/zlib-${{ env.ZLIB_VERSION }}.tar.gz
           tar xzf zlib-${{ env.ZLIB_VERSION }}.tar.gz
           cd zlib-${{ env.ZLIB_VERSION }}
           CC="$IOS_CC" \
