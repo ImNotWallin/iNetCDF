@@ -105,8 +105,10 @@ jobs:
         run: |
           curl -LO https://github.com/Unidata/netcdf-c/archive/refs/tags/v${{ env.NETCDF_VERSION }}.tar.gz
           tar xzf v${{ env.NETCDF_VERSION }}.tar.gz
-          # Patch out MACOSX_BUNDLE — causes iOS bundle destination error
-          sed -i '' 's/MACOSX_BUNDLE//g' netcdf-c-${{ env.NETCDF_VERSION }}/ncdump/CMakeLists.txt
+          # Remove MACOSX_BUNDLE from ncdump targets
+          sed -i.bak 's/MACOSX_BUNDLE//g' netcdf-c-${{ env.NETCDF_VERSION }}/ncdump/CMakeLists.txt
+          # Verify patch worked
+          grep -n "MACOSX_BUNDLE" netcdf-c-${{ env.NETCDF_VERSION }}/ncdump/CMakeLists.txt || echo "PATCH OK - no MACOSX_BUNDLE found"
           cd netcdf-c-${{ env.NETCDF_VERSION }}
           mkdir build && cd build
           cmake .. \
