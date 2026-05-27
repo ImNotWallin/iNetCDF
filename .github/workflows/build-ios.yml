@@ -107,6 +107,7 @@ jobs:
           tar xzf v${{ env.NETCDF_VERSION }}.tar.gz
           # Patch out unconditional mpi.h include
           sed -i.bak '/#include <mpi.h>/d' netcdf-c-${{ env.NETCDF_VERSION }}/include/ncdispatch.h
+          sed -i.bak2 '1s/^/typedef int MPI_Comm;\ntypedef int MPI_Info;\n/' netcdf-c-${{ env.NETCDF_VERSION }}/include/ncdispatch.h
           grep -n "mpi.h" netcdf-c-${{ env.NETCDF_VERSION }}/include/ncdispatch.h || echo "PATCH OK - no mpi.h include"
           cd netcdf-c-${{ env.NETCDF_VERSION }}
           mkdir build && cd build
