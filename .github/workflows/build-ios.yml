@@ -111,6 +111,7 @@ jobs:
           sed -i.bak4 's/H5Pset_all_coll_metadata_ops(fapl_id, 1)/0/g' netcdf-c-${{ env.NETCDF_VERSION }}/libhdf5/hdf5create.c
           sed -i.bak5 's/H5Pset_coll_metadata_write(fapl_id, 1)/0/g' netcdf-c-${{ env.NETCDF_VERSION }}/libhdf5/hdf5create.c
           sed -i.bak6 's/_filelengthi64(nciop->fd)/lseek(nciop->fd, 0, SEEK_END)/g' netcdf-c-${{ env.NETCDF_VERSION }}/libsrc/posixio.c
+          sed -i.bak7 's/mremap(mmapio->memory,mmapio->alloc,newsize,MREMAP_MAYMOVE)/(void*)MAP_FAILED/g' netcdf-c-${{ env.NETCDF_VERSION }}/libsrc/mmapio.c
           grep -n "mpi.h" netcdf-c-${{ env.NETCDF_VERSION }}/include/ncdispatch.h || echo "PATCH OK - no mpi.h include"
           cd netcdf-c-${{ env.NETCDF_VERSION }}
           mkdir build && cd build
@@ -128,6 +129,7 @@ jobs:
             -DENABLE_PARALLEL4=OFF \
             -DENABLE_PNETCDF=OFF \
             -DENABLE_PARALLEL_TESTS=OFF \
+            -DENABLE_MMAP=OFF \
             -DHDF5_C_LIBRARY_hdf5=$DEPS_DIR/lib/libhdf5.a \
             -DHDF5_C_LIBRARY_hdf5_hl=$DEPS_DIR/lib/libhdf5_hl.a \
             -DHDF5_INCLUDE_DIR=$DEPS_DIR/include \
