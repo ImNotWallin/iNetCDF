@@ -67,6 +67,7 @@ jobs:
           CFLAGS="-arch arm64 -isysroot $IOS_SDK -miphoneos-version-min=${{ env.IOS_MIN_VERSION }}" \
           CPPFLAGS="-I$DEPS_DIR/include" \
           LDFLAGS="-L$DEPS_DIR/lib" \
+          ac_cv_have_decl_H5Pget_fapl_mpio=no \
           ./configure \
             --prefix=$DEPS_DIR \
             --host=aarch64-apple-darwin \
@@ -118,6 +119,7 @@ jobs:
             -DENABLE_NETCDF_4=ON \
             -DENABLE_PARALLEL4=OFF \
             -DENABLE_PNETCDF=OFF \
+            -DENABLE_PARALLEL_TESTS=OFF
             -DHDF5_C_LIBRARY_hdf5=$DEPS_DIR/lib/libhdf5.a \
             -DHDF5_C_LIBRARY_hdf5_hl=$DEPS_DIR/lib/libhdf5_hl.a \
             -DHDF5_INCLUDE_DIR=$DEPS_DIR/include \
