@@ -120,6 +120,7 @@ jobs:
             -DENABLE_PARALLEL4=OFF \
             -DENABLE_PNETCDF=OFF \
             -DENABLE_PARALLEL_TESTS=OFF
+            -DENABLE_UTILITIES=OFF
             -DHDF5_C_LIBRARY_hdf5=$DEPS_DIR/lib/libhdf5.a \
             -DHDF5_C_LIBRARY_hdf5_hl=$DEPS_DIR/lib/libhdf5_hl.a \
             -DHDF5_INCLUDE_DIR=$DEPS_DIR/include \
