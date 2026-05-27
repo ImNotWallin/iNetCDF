@@ -105,6 +105,8 @@ jobs:
         run: |
           curl -LO https://github.com/Unidata/netcdf-c/archive/refs/tags/v${{ env.NETCDF_VERSION }}.tar.gz
           tar xzf v${{ env.NETCDF_VERSION }}.tar.gz
+          # Patch out MACOSX_BUNDLE — causes iOS bundle destination error
+          sed -i '' 's/MACOSX_BUNDLE//g' netcdf-c-${{ env.NETCDF_VERSION }}/ncdump/CMakeLists.txt
           cd netcdf-c-${{ env.NETCDF_VERSION }}
           mkdir build && cd build
           cmake .. \
@@ -119,8 +121,8 @@ jobs:
             -DENABLE_NETCDF_4=ON \
             -DENABLE_PARALLEL4=OFF \
             -DENABLE_PNETCDF=OFF \
-            -DENABLE_PARALLEL_TESTS=OFF
-            -DENABLE_UTILITIES=OFF
+            -DENABLE_PARALLEL_TESTS=OFF \
+            -DENABLE_UTILITIES=OFF \
             -DHDF5_C_LIBRARY_hdf5=$DEPS_DIR/lib/libhdf5.a \
             -DHDF5_C_LIBRARY_hdf5_hl=$DEPS_DIR/lib/libhdf5_hl.a \
             -DHDF5_INCLUDE_DIR=$DEPS_DIR/include \
