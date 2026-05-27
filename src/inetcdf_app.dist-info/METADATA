@@ -1,0 +1,11 @@
+Metadata-Version: 2.1
+Briefcase-Version: 0.4.2
+Name: inetcdf-app
+Formal-Name: iNetCDF
+App-ID: com.tango.inetcdf-app
+Version: 0.0.1
+Home-page: https://github.com/YOU/iNetCDF
+Download-URL: https://github.com/YOU/iNetCDF
+Author: Tango Tango
+Author-email: technmet@gmail.com
+Summary: NetCDF file inspector for iOS
