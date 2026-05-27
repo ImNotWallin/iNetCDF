@@ -96,17 +96,20 @@ jobs:
             -DCMAKE_OSX_SYSROOT=$IOS_SDK \
             -DCMAKE_OSX_DEPLOYMENT_TARGET=${{ env.IOS_MIN_VERSION }} \
             -DCMAKE_INSTALL_PREFIX=$DEPS_DIR \
-            -DCMAKE_PREFIX_PATH=$DEPS_DIR \
+            -DCMAKE_C_COMPILER="$IOS_CC" \
+            -DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY \
             -DBUILD_SHARED_LIBS=OFF \
             -DENABLE_TESTS=OFF \
             -DENABLE_EXAMPLES=OFF \
             -DENABLE_DAP=OFF \
             -DENABLE_BYTERANGE=OFF \
             -DENABLE_NETCDF_4=ON \
-            -DHDF5_DIR=$DEPS_DIR/lib/cmake/hdf5
+            -DHDF5_C_LIBRARY_hdf5=$DEPS_DIR/lib/libhdf5.a \
+            -DHDF5_C_LIBRARY_hdf5_hl=$DEPS_DIR/lib/libhdf5_hl.a \
+            -DHDF5_INCLUDE_DIR=$DEPS_DIR/include \
+            -DHDF5_C_INCLUDE_DIR=$DEPS_DIR/include
           make -j$(sysctl -n hw.ncpu)
           make install
-
       # ── Briefcase iOS scaffold ────────────────────────────────────────────
       - name: Create Briefcase iOS project (downloads iOS Python)
         run: |
