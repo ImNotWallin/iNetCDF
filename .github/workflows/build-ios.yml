@@ -60,7 +60,7 @@ jobs:
       # ── HDF5 ─────────────────────────────────────────────────────────────
       - name: Build HDF5 for iOS (arm64)
         run: |
-          curl -LO https://github.com/HDFGroup/hdf5/releases/download/hdf5_${{ env.HDF5_VERSION }}/hdf5-${{ env.HDF5_VERSION }}.tar.gz
+          curl -LO https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.14/hdf5-${{ env.HDF5_VERSION }}/src/hdf5-${{ env.HDF5_VERSION }}.tar.gz
           tar xzf hdf5-${{ env.HDF5_VERSION }}.tar.gz
           cd hdf5-${{ env.HDF5_VERSION }}
           CC="$IOS_CC" \
