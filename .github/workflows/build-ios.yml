@@ -105,16 +105,13 @@ jobs:
         run: |
           curl -LO https://github.com/Unidata/netcdf-c/archive/refs/tags/v${{ env.NETCDF_VERSION }}.tar.gz
           tar xzf v${{ env.NETCDF_VERSION }}.tar.gz
-          # Remove MACOSX_BUNDLE from ncdump targets
-          sed -i.bak 's/MACOSX_BUNDLE//g' netcdf-c-${{ env.NETCDF_VERSION }}/ncdump/CMakeLists.txt
-          # Verify patch worked
-          grep -n "MACOSX_BUNDLE" netcdf-c-${{ env.NETCDF_VERSION }}/ncdump/CMakeLists.txt || echo "PATCH OK - no MACOSX_BUNDLE found"
           cd netcdf-c-${{ env.NETCDF_VERSION }}
           mkdir build && cd build
           cmake .. \
             -DCMAKE_TOOLCHAIN_FILE=$GITHUB_WORKSPACE/ios-toolchain.cmake \
             -DCMAKE_INSTALL_PREFIX=$DEPS_DIR \
             -DCMAKE_PREFIX_PATH=$DEPS_DIR \
+            -DCMAKE_MACOSX_BUNDLE=OFF \
             -DBUILD_SHARED_LIBS=OFF \
             -DENABLE_TESTS=OFF \
             -DENABLE_EXAMPLES=OFF \
@@ -124,7 +121,6 @@ jobs:
             -DENABLE_PARALLEL4=OFF \
             -DENABLE_PNETCDF=OFF \
             -DENABLE_PARALLEL_TESTS=OFF \
-            -DENABLE_UTILITIES=OFF \
             -DHDF5_C_LIBRARY_hdf5=$DEPS_DIR/lib/libhdf5.a \
             -DHDF5_C_LIBRARY_hdf5_hl=$DEPS_DIR/lib/libhdf5_hl.a \
             -DHDF5_INCLUDE_DIR=$DEPS_DIR/include \
