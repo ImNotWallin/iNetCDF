@@ -213,8 +213,11 @@ jobs:
       - name: Build iOS app (no signing)
         run: |
           briefcase build iOS --no-input 2>&1 || true
-          XCODE_PROJ=$(find $GITHUB_WORKSPACE/build -name "*.xcodeproj" | head -1)
+          # Find the actual app project, not the testbed
+          XCODE_PROJ=$(find $GITHUB_WORKSPACE/build -name "*.xcodeproj" \
+                       | grep -v testbed | head -1)
           SCHEME=$(basename "$XCODE_PROJ" .xcodeproj)
+          echo "Building project $XCODE_PROJ with scheme $SCHEME"
           xcodebuild \
             -project "$XCODE_PROJ" \
             -scheme "$SCHEME" \
