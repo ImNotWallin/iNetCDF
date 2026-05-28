@@ -213,7 +213,6 @@ jobs:
       - name: Build iOS app (no signing)
         run: |
           briefcase build iOS --no-input 2>&1 || true
-          # Build with xcodebuild directly, bypassing signing
           XCODE_PROJ=$(find $GITHUB_WORKSPACE/build -name "*.xcodeproj" | head -1)
           SCHEME=$(basename "$XCODE_PROJ" .xcodeproj)
           xcodebuild \
@@ -222,9 +221,10 @@ jobs:
             -configuration Debug \
             -sdk iphoneos \
             -arch arm64 \
-            CODE_SIGN_IDENTITY="" \
+            CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_ALLOWED=YES \
+            AD_HOC_CODE_SIGNING_ALLOWED=YES \
             build
 
       # ── Package as .ipa ───────────────────────────────────────────────────
