@@ -5,7 +5,7 @@ import toga
 from toga.style.pack import COLUMN, ROW, Pack
 
 try:
-    import netCDF4 as nc
+    import ncreader as nc
     HAS_NETCDF = True
 except ImportError:
     HAS_NETCDF = False
@@ -14,7 +14,7 @@ except ImportError:
 def ncdump_h(filepath):
     """Produce ncdump -h style output from a NetCDF file."""
     if not HAS_NETCDF:
-        return "[netCDF4 not available in this environment]"
+        return "[netCDF3 not available in this environment]"
     
     with nc.Dataset(filepath, 'r') as ds:
         lines = []

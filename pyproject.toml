@@ -23,7 +23,6 @@ test_sources = [
 
 requires = [
     "toga-winforms~=0.5.0",
-    "netCDF4",
 ]
 test_requires = [
     "pytest",
