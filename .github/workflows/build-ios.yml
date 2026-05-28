@@ -163,35 +163,21 @@ jobs:
           # Create minimal _sysconfigdata for crossenv
           PY_LIB=$(dirname "$IOS_PYTHON")/../lib/python3.11
           mkdir -p "$PY_LIB"
-          cat > "$PY_LIB/_sysconfigdata__darwin_arm64-apple-ios.py" << 'EOF'
-          build_time_vars = {
-            'CC': 'clang',
-            'CXX': 'clang++',
-            'AR': 'ar',
-            'ARFLAGS': 'rc',
-            'CFLAGS': '-arch arm64',
-            'CXXFLAGS': '-arch arm64',
-            'LDFLAGS': '',
-            'LDSHARED': 'clang -bundle',
-            'CCSHARED': '-fPIC',
-            'EXT_SUFFIX': '.cpython-311-darwin.so',
-            'SHLIB_SUFFIX': '.so',
-            'MULTIARCH': '',
-            'LIBDIR': '',
-            'INCLUDEPY': '',
-            'py_version_short': '3.11',
-            'VERSION': '3.11',
-            'LDVERSION': '3.11',
-            'PYTHON_VERSION': '3.11',
-            'prefix': '',
-            'exec_prefix': '',
-            'LIBDEST': '',
-            'BINDIR': '',
-            'SCRIPTDIR': '',
-            'abiflags': '',
-            'SOABI': 'cpython-311-darwin',
-            }
-          EOF
+          python3 -c "
+          import sysconfig
+          d = sysconfig.get_config_vars()
+          d['CC'] = 'clang'
+          d['CXX'] = 'clang++'
+          d['CFLAGS'] = '-arch arm64'
+          d['CXXFLAGS'] = '-arch arm64'
+          d['LDFLAGS'] = ''
+          d['LDSHARED'] = 'clang -bundle'
+          d['EXT_SUFFIX'] = '.cpython-311-darwin.so'
+          d['SOABI'] = 'cpython-311-darwin'
+          d['HOST_GNU_TYPE'] = 'aarch64-apple-darwin'
+          d['BUILD_GNU_TYPE'] = 'aarch64-apple-darwin'
+          print('build_time_vars = ' + repr(d))
+          " > "$PY_LIB/_sysconfigdata__darwin_arm64-apple-ios.py"
           python -m crossenv "$IOS_PYTHON" cross-venv
           source cross-venv/bin/activate
           export NETCDF4_DIR=$DEPS_DIR
