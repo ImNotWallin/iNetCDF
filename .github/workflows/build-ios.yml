@@ -180,6 +180,16 @@ jobs:
             'LIBDIR': '',
             'INCLUDEPY': '',
             'py_version_short': '3.11',
+            'VERSION': '3.11',
+            'LDVERSION': '3.11',
+            'PYTHON_VERSION': '3.11',
+            'prefix': '',
+            'exec_prefix': '',
+            'LIBDEST': '',
+            'BINDIR': '',
+            'SCRIPTDIR': '',
+            'abiflags': '',
+            'SOABI': 'cpython-311-darwin',
             }
           EOF
           python -m crossenv "$IOS_PYTHON" cross-venv
