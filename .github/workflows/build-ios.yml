@@ -140,13 +140,16 @@ jobs:
       - name: Create Briefcase iOS project (downloads iOS Python)
         run: |
           briefcase create iOS --no-input 2>&1 || true
-          # Find the iOS Python binary Briefcase downloaded
-          IOS_PY=$(find ~/.cache/briefcase -name "python3.11" -type f 2>/dev/null | head -1)
+          # Find the iOS Python binary - arm64 device only, not simulator
+          IOS_PY=$(find $GITHUB_WORKSPACE/build -name "python3.11" -type f 2>/dev/null \
+                   | grep "ios-arm64/bin" | grep -v simulator | head -1)
           if [ -z "$IOS_PY" ]; then
-            IOS_PY=$(find $GITHUB_WORKSPACE/build -name "python3.11" -type f 2>/dev/null | head -1)
+            IOS_PY=$(find ~/.cache/briefcase -name "python3.11" -type f 2>/dev/null \
+                     | grep -v simulator | head -1)
           fi
           echo "IOS_PYTHON=$IOS_PY" >> $GITHUB_ENV
           echo "Found iOS Python: $IOS_PY"
+
       - name: Debug - Find iOS Python location
         run: |
           echo "=== Briefcase cache ==="
@@ -154,21 +157,21 @@ jobs:
           find ~/Library/Caches -name "python3*" -type f 2>/dev/null | head -20 || true
           echo "=== Build dir ==="
           find $GITHUB_WORKSPACE/build -name "python3*" 2>/dev/null | head -20 || true
-          echo "=== All pythons ==="
-          find / -name "python3.11" -type f 2>/dev/null | grep -i "ios\|iphone\|briefcase" | head -20 || true
       # ── netCDF4 Python wheel ───────────────────────────────────────────────
       - name: Build netCDF4 wheel for iOS Python
         run: |
+          # Create minimal _sysconfigdata for crossenv
+          PY_LIB=$(dirname "$IOS_PYTHON")/../lib/python3.11
+          cat > "$PY_LIB/_sysconfigdata__darwin_arm64-apple-ios.py" << 'EOF'
+          build_time_vars = {
+            'CC': 'clang',
+            'CFLAGS': '-arch arm64',
+            'LDFLAGS': '',
+            'EXT_SUFFIX': '.cpython-311-darwin.so',
+          }
+          EOF
           python -m crossenv "$IOS_PYTHON" cross-venv
-          source cross-venv/bin/activate
-          export NETCDF4_DIR=$DEPS_DIR
-          export HDF5_DIR=$DEPS_DIR
-          export ZLIB_DIR=$DEPS_DIR
-          export CFLAGS="-arch arm64 -isysroot $IOS_SDK -miphoneos-version-min=${{ env.IOS_MIN_VERSION }}"
-          export LDFLAGS="-L$DEPS_DIR/lib -lnetcdf -lhdf5_hl -lhdf5 -lz"
-          pip install --no-binary :all: netCDF4==${{ env.NETCDF4_PY_VERSION }}
-          # Collect the wheel
-          find cross-venv -name "netCDF4*.whl" -exec cp {} $GITHUB_WORKSPACE/ \; 2>/dev/null || true
+          ...
 
       # ── Briefcase build ───────────────────────────────────────────────────
       - name: Build iOS app (no signing)
