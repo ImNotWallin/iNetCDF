@@ -233,7 +233,11 @@ jobs:
       # ── Package as .ipa ───────────────────────────────────────────────────
       - name: Package .ipa
         run: |
-          APP=$(find build -name "*.app" -not -path "*/DerivedData/*" | head -1)
+          # xcodebuild outputs to DerivedData, not the build dir
+          APP=$(find ~/Library/Developer/Xcode/DerivedData -name "*.app" \
+                -path "*/Debug-iphoneos/*" \
+                -not -path "*/testbed/*" \
+                | head -1)
           echo "Packaging: $APP"
           mkdir -p Payload
           cp -r "$APP" Payload/
