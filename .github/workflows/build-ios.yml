@@ -158,35 +158,56 @@ jobs:
           echo "=== Build dir ==="
           find $GITHUB_WORKSPACE/build -name "python3*" 2>/dev/null | head -20 || true
       # ── netCDF4 Python wheel ───────────────────────────────────────────────
-      - name: Build netCDF4 wheel for iOS Python
+      # - name: Build netCDF4 wheel for iOS Python
+      #   run: |
+      #     # Create minimal _sysconfigdata for crossenv
+      #     PY_LIB=$(dirname "$IOS_PYTHON")/../lib/python3.11
+      #     mkdir -p "$PY_LIB"
+      #     python3 -c "
+      #     import sysconfig
+      #     d = sysconfig.get_config_vars()
+      #     d['CC'] = 'clang'
+      #     d['CXX'] = 'clang++'
+      #     d['CFLAGS'] = '-arch arm64'
+      #     d['CXXFLAGS'] = '-arch arm64'
+      #     d['LDFLAGS'] = ''
+      #     d['LDSHARED'] = 'clang -bundle'
+      #     d['EXT_SUFFIX'] = '.cpython-311-darwin.so'
+      #     d['SOABI'] = 'cpython-311-darwin'
+      #     d['HOST_GNU_TYPE'] = 'aarch64-apple-darwin'
+      #     d['BUILD_GNU_TYPE'] = 'aarch64-apple-darwin'
+      #     print('build_time_vars = ' + repr(d))
+      #     " > "$PY_LIB/_sysconfigdata__darwin_arm64-apple-ios.py"
+      #     python -m crossenv "$IOS_PYTHON" cross-venv
+      #     source cross-venv/bin/activate
+      #     export NETCDF4_DIR=$DEPS_DIR
+      #     export HDF5_DIR=$DEPS_DIR
+      #     export ZLIB_DIR=$DEPS_DIR
+      #     export CFLAGS="-arch arm64 -isysroot $IOS_SDK -miphoneos-version-min=${{ env.IOS_MIN_VERSION }}"
+      #     export LDFLAGS="-L$DEPS_DIR/lib -lnetcdf -lhdf5_hl -lhdf5 -lz"
+      #     pip install --no-binary :all: netCDF4==${{ env.NETCDF4_PY_VERSION }}
+      #     find cross-venv -name "netCDF4*.whl" -exec cp {} $GITHUB_WORKSPACE/ \; 2>/dev/null || true
+      
+      - name: Install pure-Python netCDF reader into app
         run: |
-          # Create minimal _sysconfigdata for crossenv
-          PY_LIB=$(dirname "$IOS_PYTHON")/../lib/python3.11
-          mkdir -p "$PY_LIB"
-          python3 -c "
-          import sysconfig
-          d = sysconfig.get_config_vars()
-          d['CC'] = 'clang'
-          d['CXX'] = 'clang++'
-          d['CFLAGS'] = '-arch arm64'
-          d['CXXFLAGS'] = '-arch arm64'
-          d['LDFLAGS'] = ''
-          d['LDSHARED'] = 'clang -bundle'
-          d['EXT_SUFFIX'] = '.cpython-311-darwin.so'
-          d['SOABI'] = 'cpython-311-darwin'
-          d['HOST_GNU_TYPE'] = 'aarch64-apple-darwin'
-          d['BUILD_GNU_TYPE'] = 'aarch64-apple-darwin'
-          print('build_time_vars = ' + repr(d))
-          " > "$PY_LIB/_sysconfigdata__darwin_arm64-apple-ios.py"
-          python -m crossenv "$IOS_PYTHON" cross-venv
-          source cross-venv/bin/activate
-          export NETCDF4_DIR=$DEPS_DIR
-          export HDF5_DIR=$DEPS_DIR
-          export ZLIB_DIR=$DEPS_DIR
-          export CFLAGS="-arch arm64 -isysroot $IOS_SDK -miphoneos-version-min=${{ env.IOS_MIN_VERSION }}"
-          export LDFLAGS="-L$DEPS_DIR/lib -lnetcdf -lhdf5_hl -lhdf5 -lz"
-          pip install --no-binary :all: netCDF4==${{ env.NETCDF4_PY_VERSION }}
-          find cross-venv -name "netCDF4*.whl" -exec cp {} $GITHUB_WORKSPACE/ \; 2>/dev/null || true
+          APP_SRC=$GITHUB_WORKSPACE/src/inetcdf_app
+          cat > "$APP_SRC/ncreader.py" << 'EOF'
+          import struct
+
+          def ncdump_h(path):
+              with open(path, 'rb') as f:
+                  magic = f.read(4)
+                  if magic[:3] == b'CDF':
+                      return _read_nc3(path)
+                  elif magic[:4] == b'\x89HDF':
+                      return f"NetCDF-4/HDF5 file: {path}\n(Full header parsing requires netCDF4 library)"
+                  else:
+                      return f"Unknown format: {magic!r}"
+
+          def _read_nc3(path):
+              # parse NetCDF classic header
+              ...
+          EOF
 
       # ── Briefcase build ───────────────────────────────────────────────────
       - name: Build iOS app (no signing)
