@@ -161,17 +161,25 @@ jobs:
       - name: Build netCDF4 wheel for iOS Python
         run: |
           # Create minimal _sysconfigdata for crossenv
-          PY_LIB=$(dirname "$IOS_PYTHON")/../lib/python3.11
+          PY_LIB=$(dirname "$IOS_PYTHON")/../lib-arm64/python3.11
+          mkdir -p "$PY_LIB"
           cat > "$PY_LIB/_sysconfigdata__darwin_arm64-apple-ios.py" << 'EOF'
           build_time_vars = {
             'CC': 'clang',
             'CFLAGS': '-arch arm64',
             'LDFLAGS': '',
             'EXT_SUFFIX': '.cpython-311-darwin.so',
-          }
+            }
           EOF
           python -m crossenv "$IOS_PYTHON" cross-venv
-          ...
+          source cross-venv/bin/activate
+          export NETCDF4_DIR=$DEPS_DIR
+          export HDF5_DIR=$DEPS_DIR
+          export ZLIB_DIR=$DEPS_DIR
+          export CFLAGS="-arch arm64 -isysroot $IOS_SDK -miphoneos-version-min=${{ env.IOS_MIN_VERSION }}"
+          export LDFLAGS="-L$DEPS_DIR/lib -lnetcdf -lhdf5_hl -lhdf5 -lz"
+          pip install --no-binary :all: netCDF4==${{ env.NETCDF4_PY_VERSION }}
+          find cross-venv -name "netCDF4*.whl" -exec cp {} $GITHUB_WORKSPACE/ \; 2>/dev/null || true
 
       # ── Briefcase build ───────────────────────────────────────────────────
       - name: Build iOS app (no signing)
