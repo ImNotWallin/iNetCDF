@@ -141,11 +141,21 @@ jobs:
         run: |
           briefcase create iOS --no-input 2>&1 || true
           # Find the iOS Python binary Briefcase downloaded
-          IOS_PY=$(find $GITHUB_WORKSPACE -name "python3.11" \
-                   -path "*/iphoneos/*" 2>/dev/null | head -1)
+          IOS_PY=$(find ~/.cache/briefcase -name "python3.11" -type f 2>/dev/null | head -1)
+          if [ -z "$IOS_PY" ]; then
+            IOS_PY=$(find $GITHUB_WORKSPACE/build -name "python3.11" -type f 2>/dev/null | head -1)
+          fi
           echo "IOS_PYTHON=$IOS_PY" >> $GITHUB_ENV
           echo "Found iOS Python: $IOS_PY"
-
+      - name: Debug - Find iOS Python location
+        run: |
+          echo "=== Briefcase cache ==="
+          find ~/.cache/briefcase -name "python3*" -type f 2>/dev/null | head -20 || true
+          find ~/Library/Caches -name "python3*" -type f 2>/dev/null | head -20 || true
+          echo "=== Build dir ==="
+          find $GITHUB_WORKSPACE/build -name "python3*" 2>/dev/null | head -20 || true
+          echo "=== All pythons ==="
+          find / -name "python3.11" -type f 2>/dev/null | grep -i "ios\|iphone\|briefcase" | head -20 || true
       # ── netCDF4 Python wheel ───────────────────────────────────────────────
       - name: Build netCDF4 wheel for iOS Python
         run: |
