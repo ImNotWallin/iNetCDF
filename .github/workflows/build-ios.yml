@@ -166,9 +166,20 @@ jobs:
           cat > "$PY_LIB/_sysconfigdata__darwin_arm64-apple-ios.py" << 'EOF'
           build_time_vars = {
             'CC': 'clang',
+            'CXX': 'clang++',
+            'AR': 'ar',
+            'ARFLAGS': 'rc',
             'CFLAGS': '-arch arm64',
+            'CXXFLAGS': '-arch arm64',
             'LDFLAGS': '',
+            'LDSHARED': 'clang -bundle',
+            'CCSHARED': '-fPIC',
             'EXT_SUFFIX': '.cpython-311-darwin.so',
+            'SHLIB_SUFFIX': '.so',
+            'MULTIARCH': '',
+            'LIBDIR': '',
+            'INCLUDEPY': '',
+            'py_version_short': '3.11',
             }
           EOF
           python -m crossenv "$IOS_PYTHON" cross-venv
