@@ -55,10 +55,10 @@ jobs:
             --archs="-arch arm64"
           make -j$(sysctl -n hw.ncpu)
           make install
-          # zlib installs libz.1.3.1.dylib — create libz.dylib symlink
+          # Fix install name and create libz.dylib
           cd $DEPS_DIR/lib
-          ln -sf libz.1.3.1.dylib libz.dylib
           install_name_tool -id @rpath/libz.dylib libz.1.3.1.dylib 2>/dev/null || true
+          rm -f libz.dylib libz.1.dylib
           cp libz.1.3.1.dylib libz.dylib
 
       # ── HDF5 ─────────────────────────────────────────────────────────────
