@@ -43,7 +43,7 @@ jobs:
           echo "DEPS_DIR=$DEPS" >> $GITHUB_ENV
 
       # ── zlib ─────────────────────────────────────────────────────────────
-      - name: Build zlib for iOS (arm64)
+      - name: Build zlib for iOS (arm64, shared)
         run: |
           curl -LO https://github.com/madler/zlib/releases/download/v${{ env.ZLIB_VERSION }}/zlib-${{ env.ZLIB_VERSION }}.tar.gz
           tar xzf zlib-${{ env.ZLIB_VERSION }}.tar.gz
@@ -52,13 +52,25 @@ jobs:
           CFLAGS="-arch arm64 -isysroot $IOS_SDK -miphoneos-version-min=${{ env.IOS_MIN_VERSION }}" \
           ./configure \
             --prefix=$DEPS_DIR \
-            --static \
             --archs="-arch arm64"
           make -j$(sysctl -n hw.ncpu)
           make install
+          # Also build shared
+          CC="$IOS_CC" \
+          CFLAGS="-arch arm64 -isysroot $IOS_SDK -miphoneos-version-min=${{ env.IOS_MIN_VERSION }} -fPIC" \
+          clang -arch arm64 -isysroot $IOS_SDK \
+            -miphoneos-version-min=${{ env.IOS_MIN_VERSION }} \
+            -shared -o $DEPS_DIR/lib/libz.dylib \
+            -install_name @rpath/libz.dylib \
+            zlib-${{ env.ZLIB_VERSION }}/*.o 2>/dev/null || \
+          $IOS_CC -arch arm64 -isysroot $IOS_SDK \
+            -miphoneos-version-min=${{ env.IOS_MIN_VERSION }} \
+            -dynamiclib -o $DEPS_DIR/lib/libz.dylib \
+            -install_name @rpath/libz.dylib \
+            zlib-${{ env.ZLIB_VERSION }}/*.o
 
       # ── HDF5 ─────────────────────────────────────────────────────────────
-      - name: Build HDF5 for iOS (arm64)
+      - name: Build HDF5 for iOS (arm64, shared)
         run: |
           curl -LO https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.14/hdf5-${{ env.HDF5_VERSION }}/src/hdf5-${{ env.HDF5_VERSION }}.tar.gz
           tar xzf hdf5-${{ env.HDF5_VERSION }}.tar.gz
@@ -71,8 +83,8 @@ jobs:
           ./configure \
             --prefix=$DEPS_DIR \
             --host=aarch64-apple-darwin \
-            --enable-static \
-            --disable-shared \
+            --enable-shared \
+            --disable-static \
             --disable-tests \
             --disable-tools \
             --disable-parallel \
@@ -84,6 +96,9 @@ jobs:
             hdf5_cv_ldouble_to_integer_works=yes
           make -j$(sysctl -n hw.ncpu)
           make install
+          # Fix install names
+          install_name_tool -id @rpath/libhdf5.dylib $DEPS_DIR/lib/libhdf5.dylib 2>/dev/null || true
+          install_name_tool -id @rpath/libhdf5_hl.dylib $DEPS_DIR/lib/libhdf5_hl.dylib 2>/dev/null || true
 
       # ── libnetcdf ─────────────────────────────────────────────────────────
       - name: Create iOS CMake toolchain file
@@ -233,12 +248,21 @@ jobs:
       # ── Package as .ipa ───────────────────────────────────────────────────
       - name: Package .ipa
         run: |
-          # xcodebuild outputs to DerivedData, not the build dir
           APP=$(find ~/Library/Developer/Xcode/DerivedData -name "*.app" \
                 -path "*/Debug-iphoneos/*" \
                 -not -path "*/testbed/*" \
                 | head -1)
           echo "Packaging: $APP"
+          # Bundle dylibs into Frameworks/
+          mkdir -p "$APP/Frameworks"
+          cp $DEPS_DIR/lib/libnetcdf.dylib "$APP/Frameworks/"
+          cp $DEPS_DIR/lib/libhdf5.dylib "$APP/Frameworks/"
+          cp $DEPS_DIR/lib/libhdf5_hl.dylib "$APP/Frameworks/"
+          cp $DEPS_DIR/lib/libz.dylib "$APP/Frameworks/"
+          # Re-sign everything with ad-hoc
+          find "$APP/Frameworks" -name "*.dylib" -exec \
+            codesign -f -s "-" {} \;
+          codesign -f -s "-" "$APP"
           mkdir -p Payload
           cp -r "$APP" Payload/
           zip -r iNetCDF.ipa Payload/
