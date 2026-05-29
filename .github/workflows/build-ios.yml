@@ -55,19 +55,11 @@ jobs:
             --archs="-arch arm64"
           make -j$(sysctl -n hw.ncpu)
           make install
-          # Also build shared
-          CC="$IOS_CC" \
-          CFLAGS="-arch arm64 -isysroot $IOS_SDK -miphoneos-version-min=${{ env.IOS_MIN_VERSION }} -fPIC" \
-          clang -arch arm64 -isysroot $IOS_SDK \
-            -miphoneos-version-min=${{ env.IOS_MIN_VERSION }} \
-            -shared -o $DEPS_DIR/lib/libz.dylib \
-            -install_name @rpath/libz.dylib \
-            zlib-${{ env.ZLIB_VERSION }}/*.o 2>/dev/null || \
-          $IOS_CC -arch arm64 -isysroot $IOS_SDK \
-            -miphoneos-version-min=${{ env.IOS_MIN_VERSION }} \
-            -dynamiclib -o $DEPS_DIR/lib/libz.dylib \
-            -install_name @rpath/libz.dylib \
-            zlib-${{ env.ZLIB_VERSION }}/*.o
+          # zlib installs libz.1.3.1.dylib — create libz.dylib symlink
+          cd $DEPS_DIR/lib
+          ln -sf libz.1.3.1.dylib libz.dylib
+          install_name_tool -id @rpath/libz.dylib libz.1.3.1.dylib 2>/dev/null || true
+          cp libz.1.3.1.dylib libz.dylib
 
       # ── HDF5 ─────────────────────────────────────────────────────────────
       - name: Build HDF5 for iOS (arm64, shared)
